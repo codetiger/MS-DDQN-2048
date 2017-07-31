@@ -17,8 +17,8 @@ class DoubleDQNAgent:
         # these is hyper parameters for the Double DQN
         self.discount_factor = 0.99
         self.learning_rate = 0.001
-        self.epsilon = 1.0
-        self.epsilon_decay = 0.999
+        self.epsilon = 0.25
+        self.epsilon_decay = 0.9999999
         self.epsilon_min = 0.01
         self.batch_size = 64
         self.train_start = 1000
@@ -36,13 +36,11 @@ class DoubleDQNAgent:
     # state is input and Q Value of each action is output of network
     def build_model(self):
         model = Sequential()
-        model.add(Flatten(input_shape=(1, self.state_size)))
-        model.add(Dense(self.nb_hidden))
-        model.add(Activation('relu'))
-        model.add(Dense(self.nb_hidden))
-        model.add(Activation('relu'))
-        model.add(Dense(self.action_size, activation='linear'))
-        model.summary()
+
+        model.add(Dense(24, input_dim=self.state_size, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dense(self.nb_hidden, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_uniform'))
+
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
 
@@ -103,3 +101,12 @@ class DoubleDQNAgent:
         # and do the model fit!
         self.model.fit(update_input, target, batch_size=self.batch_size,
                        epochs=1, verbose=0)
+
+    def load_model(self, filename):
+        try:
+            self.model.load_weights(filename)
+        except:
+            pass
+
+    def save_model(self, filename):
+        self.model.save_weights(filename)

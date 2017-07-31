@@ -154,7 +154,7 @@ class GameLogic:
 			maxNumber = self._getMaxNumber()
 
 		flatMat = [j/maxNumber for i in self._gridMatrix for j in i]
-		return tuple(flatMat)
+		return np.asarray(tuple(flatMat))
 
 	def _checkOptimInAllDir(self, matrix):
 		gridCopy = [row[:] for row in matrix]
