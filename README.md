@@ -6,3 +6,4 @@ Multi-stage Double DQN for learning 2048
 2. Reinforcement Learning Basics: https://www.youtube.com/watch?v=2pWv7GOvuf0
 3. Original 2048 Game: https://github.com/gabrielecirulli/2048
 4. Valuable discussion: https://github.com/matthiasplappert/keras-rl/issues/38
+5. 2048 Python Implementation(Coverup & merge tiles): https://github.com/yangshun/2048-python

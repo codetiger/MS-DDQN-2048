@@ -28,9 +28,35 @@ class GameLogic:
 			self._addNewNumber()
 			self._addNewNumber()
 
+		if self._verbose >= 2:
+			self._printGrid()
+
 		return self._getState()
 
+	def cover_up(self):
+		new = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+
+		for i in range(self._gridSize):
+			count = 0
+			for j in range(self._gridSize):
+				if self._gridMatrix[i][j] != 0:
+					new[i][count] = self._gridMatrix[i][j]
+					count += 1
+
+		self._gridMatrix = new
+
+	def merge(self):
+		moveScore = 0
+		for i in range(self._gridSize):
+			for j in range(self._gridSize - 1):
+				if self._gridMatrix[i][j] == self._gridMatrix[i][j+1] and self._gridMatrix[i][j] != 0:
+					self._gridMatrix[i][j] += 1
+					moveScore += 2 ** self._gridMatrix[i][j]
+					self._gridMatrix[i][j+1] = 0
+		return moveScore
+
 	def step(self, action):
+		#[0:'Right', 1:'Up', 2:'Down', 3:'Left']
 		dir = action + 1
 
 		gridCopy = [row[:] for row in self._gridMatrix]
@@ -39,25 +65,9 @@ class GameLogic:
 		for i in range(dir):
 			self._gridMatrix = self._rotate(self._gridMatrix)
 
-		for i in range(self._gridSize):
-			temp = []
-			for j in self._gridMatrix[i]:
-				if j != 0:
-				    temp.append(j)
-
-			temp += [0] * self._gridMatrix[i].count(0)
-			for j in range(len(temp) - 1):
-				if temp[j] == temp[j + 1] and temp[j] != 0 and temp[j + 1] != 0:
-					temp[j] = temp[j] + 1
-					moveScore = 2**temp[j]
-					temp[j + 1] = 0
-
-			self._gridMatrix[i] = []
-			for j in temp:
-				if j != 0:
-					self._gridMatrix[i].append(j)
-
-			self._gridMatrix[i] += [0] * temp.count(0)
+		self.cover_up()
+		moveScore = self.merge()
+		self.cover_up()
 
 		for i in range(4 - dir):
 			self._gridMatrix = self._rotate(self._gridMatrix)
@@ -77,6 +87,7 @@ class GameLogic:
 
 		if self._verbose >= 2:
 			self._printGrid()
+			print(" Action", action)
 		
 		if self._verbose >= 1 and done:
 			self._printGrid()
@@ -86,7 +97,7 @@ class GameLogic:
 			moveScore = -100
 
 		if moveScore > 0 and self._checkOptimInAllDir(self._gridMatrix):
-			moveScore = 10
+			moveScore += 100
 
 		state = self._getState()	
 
