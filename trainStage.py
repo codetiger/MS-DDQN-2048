@@ -1,5 +1,5 @@
-import pylab
-import random, pickle, os, time, sys
+import pylab, random, pickle, os, time, sys
+
 import numpy as np
 from collections import deque
 from keras.layers import Dense
@@ -11,19 +11,22 @@ import tensorflow as tf
 from supervisor import *
 
 learn = True
-EPISODES = 100000
+EPISODES = 10000
+
 STAGE_LIMIT = [7, 10, 14]
 stage = 0
 gridSize = 4
 random.seed(int(time.time()))
 np.random.seed(int(time.time()))
 
-state_size = gridSize * gridSize
 action_size = 4
 
-agent = DoubleDQNAgent(state_size, action_size)
+agent = DoubleDQNAgent(gridSize, action_size)
 agent.load_model("result/ms-ddqn-2048-s{}.h5".format(stage))
 supervisor = Supervisor(gridSize)
+
+totalScore = 0
+totalMaxTile = 0
 
 def generateGame():
     env = GameLogic(size = gridSize)
@@ -34,7 +37,7 @@ def generateGame():
     score = 0
     randomNextMove = False
     state = env.reset()
-    state = np.reshape(state, (1, state_size)) 
+    state = np.reshape(state, (1, gridSize, gridSize)) 
     totalSteps = 0
     randomStep = 0
 
@@ -49,7 +52,7 @@ def generateGame():
                 action = agent.get_action(state)
 
         next_state, reward, done, info = env.step(action)
-        next_state = np.reshape(next_state, (1, state_size)) 
+        next_state = np.reshape(next_state, (1, gridSize, gridSize)) 
 
         randomNextMove = reward < 0
 
@@ -61,28 +64,27 @@ def generateGame():
         state = next_state
         totalSteps += 1
 
+        global totalScore
+        global totalMaxTile
+
         if stage < 3 and env._getMaxNumber() > STAGE_LIMIT[stage]:
             done = True
+            totalMaxTile += 1
 
         if done:
             print("E:", e, "  score:", env._score, "  MaxTile:", 2**env._getMaxNumber(), " Randomness:", randomStep / totalSteps)
             if learn:
                 agent.update_target_model()
+            else:
+                totalScore += score
 
 
 if __name__ == "__main__":
-    # action = supervisor.find_best_move(b)
-    # print(action)
+    if len(sys.argv) > 1:
+        learn = sys.argv[1] == 'True'
 
-    # env = GameLogic(size = gridSize)
-    # env._normalize = True
-    # env._verbose = 2
-    # env._reset2RandomBoard = True
-
-    # env.reset()
-    # print()
-    # env.step(2)
-    # env._printGrid()
+    if not learn:
+        EPISODES = 100
 
     try:
         for e in range(EPISODES):
@@ -95,3 +97,5 @@ if __name__ == "__main__":
     if learn:
         print("Saving Model")
         agent.save_model("result/ms-ddqn-2048-s{}.h5".format(stage))
+    else:
+        print("Average Score: ", totalScore / EPISODES, " Max Tile Ratio: ", totalMaxTile)

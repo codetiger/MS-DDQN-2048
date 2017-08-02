@@ -16,7 +16,6 @@ class DoubleDQNAgent:
 
         # these is hyper parameters for the Double DQN
         self.discount_factor = 0.99
-        self.learning_rate = 0.001
         self.epsilon = 1.0
         self.epsilon_decay = 0.9999999
         self.epsilon_min = 0.01
@@ -37,11 +36,12 @@ class DoubleDQNAgent:
     def build_model(self):
         model = Sequential()
 
-        model.add(Dense(24, input_dim=self.state_size, activation='relu', kernel_initializer='he_uniform'))
-        model.add(Dense(self.nb_hidden, activation='relu', kernel_initializer='he_uniform'))
-        model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_uniform'))
+        model.add(Flatten(input_shape=(self.state_size, self.state_size)))
+        model.add(Dense(self.nb_hidden, activation='relu'))
+        model.add(Dense(self.nb_hidden, activation='relu'))
+        model.add(Dense(self.action_size, activation='linear'))
 
-        model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        model.compile(loss='mse', optimizer=Adam())
         return model
 
     # after some time interval update the target model to be same with model
@@ -71,8 +71,8 @@ class DoubleDQNAgent:
         batch_size = min(self.batch_size, len(self.memory))
         mini_batch = random.sample(self.memory, batch_size)
 
-        update_input = np.zeros((batch_size, self.state_size))
-        update_target = np.zeros((batch_size, self.state_size))
+        update_input = np.zeros((batch_size, self.state_size, self.state_size))
+        update_target = np.zeros((batch_size, self.state_size, self.state_size))
         action, reward, done = [], [], []
 
         for i in range(batch_size):
