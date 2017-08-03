@@ -11,7 +11,7 @@ import tensorflow as tf
 from supervisor import *
 
 learn = True
-EPISODES = 10000
+EPISODES = 50000
 
 STAGE_LIMIT = [7, 10, 14]
 stage = 0
@@ -28,6 +28,10 @@ supervisor = Supervisor(gridSize)
 totalScore = 0
 totalMaxTile = 0
 
+storeEpisodeCount = 0
+storeTotalSteps = 0 
+storeTotalCPUTime = 0
+
 def generateGame():
     env = GameLogic(size = gridSize)
     env._normalize = True
@@ -36,10 +40,18 @@ def generateGame():
     done = False
     score = 0
     randomNextMove = False
-    state = env.reset()
+    env.reset()
+    state = env._gridMatrix
     state = np.reshape(state, (1, gridSize, gridSize)) 
     totalSteps = 0
     randomStep = 0
+
+    global storeEpisodeCount
+    global storeTotalSteps
+    storeEpisodeCount += 1
+
+    global totalScore
+    global totalMaxTile
 
     while not done:
         if randomNextMove:
@@ -51,7 +63,10 @@ def generateGame():
             else:
                 action = agent.get_action(state)
 
+        storeTotalSteps += 1
+
         next_state, reward, done, info = env.step(action)
+        next_state = env._gridMatrix
         next_state = np.reshape(next_state, (1, gridSize, gridSize)) 
 
         randomNextMove = reward < 0
@@ -63,9 +78,6 @@ def generateGame():
         score += reward
         state = next_state
         totalSteps += 1
-
-        global totalScore
-        global totalMaxTile
 
         if stage < 3 and env._getMaxNumber() > STAGE_LIMIT[stage]:
             done = True
@@ -80,6 +92,15 @@ def generateGame():
 
 
 if __name__ == "__main__":
+    start_time = time.time()
+
+    if os.path.isfile("result/ms-ddqn-2048-s{}.txt".format(stage)):
+        with open("result/ms-ddqn-2048-s{}.txt".format(stage), 'r') as f:
+            val = [x for x in next(f).split()]
+            storeEpisodeCount, storeTotalSteps, storeTotalCPUTime = int(val[0]), int(val[1]), float(val[2])
+    else:
+        storeEpisodeCount, storeTotalSteps, storeTotalCPUTime = 0, 0, 0
+
     if len(sys.argv) > 1:
         learn = sys.argv[1] == 'True'
 
@@ -90,12 +111,14 @@ if __name__ == "__main__":
         for e in range(EPISODES):
             generateGame()
     except KeyboardInterrupt:
-        if learn:
-            print("Saving Model")
-            agent.save_model("result/ms-ddqn-2048-s{}.h5".format(stage))
+        pass
 
+    storeTotalCPUTime += time.time() - start_time
+    
     if learn:
         print("Saving Model")
         agent.save_model("result/ms-ddqn-2048-s{}.h5".format(stage))
+        with open("result/ms-ddqn-2048-s{}.txt".format(stage), 'w') as f:
+            f.write('{} {} {}\n'.format(storeEpisodeCount, storeTotalSteps, storeTotalCPUTime))
     else:
         print("Average Score: ", totalScore / EPISODES, " Max Tile Ratio: ", totalMaxTile)
