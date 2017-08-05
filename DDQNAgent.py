@@ -16,11 +16,9 @@ class DoubleDQNAgent:
 
         # these is hyper parameters for the Double DQN
         self.discount_factor = 0.99
-        self.epsilon = 1.0
-        self.epsilon_decay = 0.9999999
-        self.epsilon_min = 0.01
         self.batch_size = 64
         self.train_start = 1000
+
         # create replay memory using deque
         self.memory = deque(maxlen=2000)
 
@@ -48,21 +46,13 @@ class DoubleDQNAgent:
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-    # get action from model using epsilon-greedy policy
     def get_action(self, state):
         q_value = self.model.predict(state)
         return np.argmax(q_value[0])
-        # if np.random.rand() <= self.epsilon:
-        #     return random.randrange(self.action_size)
-        # else:
-        #     q_value = self.model.predict(state)
-        #     return np.argmax(q_value[0])
 
     # save sample <s,a,r,s'> to the replay memory
     def append_sample(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
 
     # pick samples randomly from replay memory (with batch_size)
     def train_model(self):
@@ -87,22 +77,17 @@ class DoubleDQNAgent:
         target_val = self.target_model.predict(update_target)
 
         for i in range(self.batch_size):
-            # like Q Learning, get maximum Q value at s'
-            # But from target model
+            # like Q Learning, get maximum Q value at s' but from target model
             if done[i]:
                 target[i][action[i]] = reward[i]
             else:
-                # the key point of Double DQN
-                # selection of action is from model
-                # update is from target model
+                # the key point of Double DQN selection of action is from model update is from target model
                 a = np.argmax(target_next[i])
                 target[i][action[i]] = reward[i] + self.discount_factor * (
                     target_val[i][a])
 
-        # make minibatch which includes target q value and predicted q value
-        # and do the model fit!
-        self.model.fit(update_input, target, batch_size=self.batch_size,
-                       epochs=1, verbose=0)
+        # make minibatch which includes target q value and predicted q value and do the model fit!
+        self.model.fit(update_input, target, batch_size=self.batch_size, epochs=1, verbose=0)
 
     def load_model(self, filename):
         try:
